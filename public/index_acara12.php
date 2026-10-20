@@ -1,1 +1,2 @@
-<h1>login Sistem Akademik</h1>
+<h1>Sistem Informasi Akademik</h1>
+<p>Fitur Login Akademik</p>
