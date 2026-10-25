@@ -1,41 +1,60 @@
 <?php
-$rootPath = dirname(__DIR__, 2);
-require_once $rootPath . '/config/database.php';
+require_once __DIR__ . '/BaseModel.php';
+require_once __DIR__ . '/Mahasiswa.php';
 
-class MahasiswaRepositoryAcara10
+class MahasiswaRepositoryAcara10 extends BaseModel
 {
-    private $db;
-
-    public function __construct(Database $database)
-    {
-        $this->db = $database;
-    }
-
     public function all(): array
     {
-        $conn = $this->db->getConnection();
-        // Menggunakan p.nama sesuai struktur tabel prodi umum (ubah ke p.nama_prodi jika di database-mu namanya berbeda)
-        $query = "SELECT m.*, p.nama AS prodi_nama FROM mahasiswa m LEFT JOIN prodi p ON m.prodi_id = p.id";
-        $stmt = $conn->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->query("SELECT * FROM mahasiswa ORDER BY nim");
+
+        $hasil = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            try {
+                $hasil[] = new Mahasiswa($row['nim'], $row['nama'], $row['prodi'] ?? '-');
+            } catch (InvalidArgumentException $e) {
+                continue; // lewati data yang tidak lolos validasi setter
+            }
+        }
+        return $hasil;
     }
 
-    public function find(int $id): ?array
+    public function find(string $nim): ?Mahasiswa
     {
-        $conn = $this->db->getConnection();
-        $stmt = $conn->prepare("SELECT * FROM mahasiswa WHERE id = :id");
-        $stmt->execute(['id' => $id]);
+        $stmt = $this->pdo->prepare("SELECT * FROM mahasiswa WHERE nim = :nim");
+        $stmt->execute(['nim' => $nim]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ? $row : null;
+
+        return $row ? new Mahasiswa($row['nim'], $row['nama'], $row['prodi'] ?? '-') : null;
     }
 
-    public function create(array $data): int
+    public function create(Mahasiswa $m): void
     {
-        $conn = $this->db->getConnection();
-        $stmt = $conn->prepare("INSERT INTO mahasiswa (nim, nama, email, prodi_id, angkatan) VALUES (:nim, :nama, :email, :prodi_id, :angkatan)");
-        $stmt->execute($data);
-        return (int) $conn->lastInsertId();
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO mahasiswa (nim, nama, prodi) VALUES (:nim, :nama, :prodi)"
+        );
+        $stmt->execute([
+            'nim'   => $m->getNim(),
+            'nama'  => $m->getNama(),
+            'prodi' => $m->getProdi(),
+        ]);
+    }
+
+    public function update(Mahasiswa $m): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE mahasiswa SET nama = :nama, prodi = :prodi WHERE nim = :nim"
+        );
+        $stmt->execute([
+            'nama'  => $m->getNama(),
+            'prodi' => $m->getProdi(),
+            'nim'   => $m->getNim(),
+        ]);
+    }
+
+    public function delete(string $nim): void
+    {
+        $stmt = $this->pdo->prepare("DELETE FROM mahasiswa WHERE nim = :nim");
+        $stmt->execute(['nim' => $nim]);
     }
 }
-?>

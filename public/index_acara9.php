@@ -16,8 +16,25 @@ try {
     // 3. Masukkan Repository ke Controller
     $controller = new MahasiswaControllerAcara9($repository);
 
-    // 4. Jalankan method index
-    $controller->index();
+    // 4. Jalankan method sesuai aksi (tampil, tambah, ubah, hapus)
+    $aksi = $_GET['aksi'] ?? 'index';
+
+    switch ($aksi) {
+        case 'simpan':
+            $controller->store();
+            break;
+        case 'edit':
+            $controller->edit($_GET['nim'] ?? '');
+            break;
+        case 'ubah':
+            $controller->update();
+            break;
+        case 'hapus':
+            $controller->destroy();
+            break;
+        default:
+            $controller->index();
+    }
 
 } catch (Exception $e) {
     echo "Terjadi Kesalahan: " . $e->getMessage();
